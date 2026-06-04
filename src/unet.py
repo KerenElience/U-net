@@ -10,11 +10,11 @@ class ConvBlock(nn.Module):
             nn.Conv2d(input_channel, out_channel, 3, 1, 1, padding_mode="reflect", bias = False),
             ## BatchNorm也是进行了偏置计算，所以上方可以关闭
             nn.BatchNorm2d(out_channel),
-            nn.Dropout2d(0.3,inplace=True),
+            # nn.Dropout2d(0.3),
             nn.LeakyReLU(),
             nn.Conv2d(out_channel, out_channel, 3, 1, 1, padding_mode="reflect", bias = False),
             nn.BatchNorm2d(out_channel),
-            nn.Dropout2d(0.3,inplace=True),
+            nn.Dropout2d(0.3),
             nn.LeakyReLU(),
         )
     
@@ -76,7 +76,7 @@ class UnetDecoder(nn.Module):
         return out
 
 class UNet(nn.Module):
-    def __init__(self, input_channel):
+    def __init__(self, input_channel, out_channel):
         super().__init__()
         self.e1 = UnetEncoder(input_channel, 64)
         self.e2 = UnetEncoder(64, 128)
@@ -90,8 +90,7 @@ class UNet(nn.Module):
         self.d3 = UnetDecoder(256, 128)
         self.d4 = UnetDecoder(128, 64)
 
-        self.outconv = nn.Conv2d(64, input_channel, 1, 1)
-        self.softmax = nn.Softmax(dim = 1)
+        self.outconv = nn.Conv2d(64, out_channel, 1, 1)
     
     def forward(self, x):
         f1, out1 = self.e1(x)
@@ -104,4 +103,4 @@ class UNet(nn.Module):
         out = self.d2(out, f3)
         out = self.d3(out, f2)
         out = self.d4(out, f1)
-        return self.softmax(self.outconv(out))
+        return self.outconv(out)

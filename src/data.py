@@ -17,24 +17,36 @@ from torchvision.transforms import transforms
 from utils.utils import keep_image_size_open
 
 class UnetDataset(Dataset):
-    def __init__(self, path):
+    def __init__(self, path, datatype = "train"):
         super().__init__()
         self.path = path
-        self.name = os.listdir(os.path.join(path, "segment"))
+        self.namepath = os.path.join(path, "Segmentation", f"{datatype}.txt")
+        self.name = self.inital()
     
     def __len__(self):
         return len(self.name)
 
     def __getitem__(self, index):
         name = self.name[index]
-        segment_path = os.path.join(self.path, "raw", name)
-        raw_path = os.path.join(self.path, "segment", name.replace(".png", ".jpg"))
+        segment_path = os.path.join(self.path, "SegmentationObject", f"{name}.png")
+        raw_path = os.path.join(self.path, "JPEGImages", f"{name}.jpg")
         segment_img = keep_image_size_open(segment_path)
         image = keep_image_size_open(raw_path)
-        return self.transform(image), self.transform(segment_img)
+        trans = self.transform()
+        return trans(image), trans(segment_img)
     
     def transform(self):
         trans = transforms.Compose([
             transforms.ToTensor()
         ])
         return trans
+    
+    def inital(self):
+        name = []
+        with open(self.namepath, "r") as f:
+            for line in f.readlines():
+                line = line.strip()
+                if line:
+                    name.append(line)
+        return name
+            
