@@ -1,0 +1,8 @@
+torch
+torchvision
+numpy
+matplotlib
+albucore==0.0.28
+albumentations==2.0.8
+opencv-python-headless
+tqdm

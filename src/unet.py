@@ -63,7 +63,6 @@ class UnetEncoder(nn.Module):
         down_ = self.downsample(out)
         return out, down_
 
-    
 class UnetDecoder(nn.Module):
     def __init__(self, input_channel, out_channel):
         super().__init__()

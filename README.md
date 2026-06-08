@@ -10,3 +10,10 @@
 - 转置卷积是一个可学习的权重，能在网络训练过程自适应找到最佳的采样方式，代价是训练和推理的速度不如插值法
 - 转置卷积核使用2x2，能够避免伪影，栅格出现
 - Unet在少量的样本训练上就能取得不错的效果，框架简单易懂，缺点是相对于Yolo，VGG，Resnet等网络数据的标注很痛苦，但是相对于Yolo框架来说能够很好的计算识别区域的面积方便后续的精确量化
+
+踩坑记录：
+albumentationsx版本不兼容
+
+安装albumentations 2.0.8版本，对应默认albucore 0.0.16中缺失`MONO_CHANNEL_DIMENSIONS`，查找albucore github issue页面，应该安装0.0.16 ~ 0.0.28及之前的几个版本
+
+segmentation图像读取不要使用Opencv，只有Pillow能正确读取图像中的标签分类，opencv会将其转换成调色板上的数值失去原本的标签

@@ -2,25 +2,41 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class BCEDiceLoss(nn.Module):
-    def __init__(self, smooth = 1e-5, bce_weight = 0.5):
+class DiceLoss(nn.Module):
+    def __init__(self, num_classes, smooth = 1e-5, ignore_index = None):
         super().__init__()
+        self.num_classes = num_classes
         self.smooth = smooth
-        self.bce_weight = bce_weight
-
-    def dice_loss(self, pred, target):
-        batch_size = pred.shape[0]
-        i_flat = pred.view(batch_size, -1)
-        t_flat = target.view(batch_size, -1)
-
-        intersection = (i_flat * t_flat).sum(dim = 1)
-        union = i_flat.sum(dim = 1) + t_flat.sum(dim = 1)
-
-        return 1 - ((2. * intersection + self.smooth)/(union + self.smooth))
+        self.ignore_index = ignore_index
 
     def forward(self, pred, target):
-        bce = F.binary_cross_entropy_with_logits(pred, target)
-        pred = torch.sigmoid(pred)
-        dice = self.dice_loss(pred, target)
-        loss = bce*self.bce_weight + dice*(1-self.bce_weight)
-        return loss.mean()
+        pred = F.softmax(pred, dim = 1)
+        if self.ignore_index is not None:
+            mask = (target != self.ignore_index).float()
+            target = target.clone()
+            target[target == self.ignore_index] = 0
+        else:
+            mask = torch.ones_like(target).float()
+        target_one_hot = F.one_hot(target, num_classes=self.num_classes)
+        target_one_hot = target_one_hot.permute(0, 3, 1, 2).float()  # (B, C, H, W)
+        
+        mask = mask.unsqueeze(1)
+        target_one_hot = target_one_hot * mask
+        pred = pred * mask
+
+        intersection = (pred * target_one_hot).sum(dim = (0, 2, 3))
+        union = pred.sum(dim=(0, 2, 3)) + target_one_hot.sum(dim=(0, 2, 3))
+        dice_loss = (2. * intersection + self.smooth)/(union + self.smooth)
+        return 1 - dice_loss.mean()
+
+class CEDiceLoss(nn.Module):
+    def __init__(self, num_classes, ce_weight = 0.5, ignore_index = None):
+        super().__init__()
+        self.ce_loss = nn.CrossEntropyLoss(ignore_index= ignore_index)
+        self.dice_loss = DiceLoss(num_classes, ignore_index=ignore_index)
+        self.ce_weight = ce_weight
+        self.dice_weight = 1 - ce_weight
+
+    def forward(self, pred, target):
+        loss = self.ce_weight * self.ce_loss(pred, target) + self.dice_weight*self.dice_loss(pred, target)
+        return loss
