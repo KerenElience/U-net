@@ -4,7 +4,7 @@ from tqdm import tqdm
 
 class Trainer():
     def __init__(self, model, trainloader, validloader, criterion, optimizer, lr_scheduler = None,
-                 num_epoch = 20, early_stop = 10, tolerance = 0.005, num_classes = 21, ignore_index = 255,
+                 num_epoch = 20, early_stop = 10, tolerance = 0.005, num_classes = 21,
                  device = None, on_amp = False):
         
         self.model = model.to(device)
@@ -17,7 +17,6 @@ class Trainer():
         self.early_stop = early_stop
         self.tolerance = tolerance
         self.num_classes = num_classes
-        self.ignore_index = ignore_index
         
         self.device = device
         self.on_amp = on_amp
@@ -26,14 +25,12 @@ class Trainer():
 
         self.best_loss = np.inf
         self.best_miou = 0.0
-        self.state = {"tra_loss": [], "val_loss":[], "lr": [], 
+        self.state = {"tra_loss": [], "val_loss":[], 
                       "miou": [], "class_iou": []}
 
-    
     def _epoch(self, x, y, istraining = True):
-        if self.on_amp:
-            device_type = str(self.device).split(':')[0]
-            with torch.autocast(device_type=device_type, dtype=torch.float16):
+        if self.on_amp and self.device.type == "cuda":
+            with torch.autocast(device_type="cuda", dtype=torch.float16):
                 pred = self.model(x)
                 loss = self.criterion(pred, y)
         else:
@@ -80,8 +77,7 @@ class Trainer():
                 y = y.to(self.device)
                 loss, preds = self._epoch(x, y, False)
                 running_loss += loss.item()
-                conf_mat += self.calc_conf_mat(preds, y, self.ignore_index)
-
+                conf_mat += self.calc_conf_mat(preds, y)
                 pbar.set_postfix(loss = f"{loss.item():.4f}")
             miou, class_iou = self.calc_miou(conf_mat)
             return running_loss/len(self.validloader), miou, class_iou
@@ -93,28 +89,29 @@ class Trainer():
             tra_loss = self.train()
             val_loss, miou, class_iou = self.eval()
 
-            print(f"Train loss: {tra_loss}, Valid loss: {val_loss}") 
+            print(f"Class_iou: {class_iou}")
+
+            print(f"Train loss: {tra_loss}, Valid loss: {val_loss}, mIoU: {miou}") 
             self.state["tra_loss"].append(tra_loss)
             self.state["val_loss"].append(val_loss)
             self.state["miou"].append(miou)
             self.state["class_iou"].append(class_iou)
 
-            if self.lr_scheduler is not None:
-                if hasattr(self.lr_scheduler, "reduce_on_plateau"):
-                    self.lr_scheduler.step(val_loss)
-                else:
-                    self.lr_scheduler.step()
-            current_lr = self.optimizer.param_groups[0]['lr']
-            self.state["lr"].append(current_lr)
-
             if (epoch+1) % 10 == 0:
+                print(self.optimizer.param_groups[0]["lr"])
                 self.save(f"./run/epoch_{epoch+1}_model_loss_{val_loss:.4f}.pth")
 
-            # if val_loss < self.best_loss + self.tolerance:
-            if miou > self.best_miou + self.tolerance:
+            if self.lr_scheduler is not None:
+                if hasattr(self.lr_scheduler, "_reduce_lr"):
+                    self.lr_scheduler.step(miou)
+                else:
+                    self.lr_scheduler.step()
+
+            if val_loss < self.best_loss - self.tolerance:
+            # if miou > self.best_miou + self.tolerance:
                 n_count = 0
-                # self.best_loss = val_loss
-                self.best_miou = miou
+                self.best_loss = val_loss
+                # self.best_miou = miou
                 self.save(f"./run/best_model.pth")
             else:
                 n_count += 1
@@ -122,23 +119,24 @@ class Trainer():
             if n_count == self.early_stop:
                 print(f"Epoch {epoch} early stop.")
                 break
-        print(f"Training finished. Best mIoU = {self.best_miou:.4f}")
+        # print(f"Training finished. Best mIoU = {self.best_miou:.4f}")
         return None
     
     @staticmethod
     @torch.no_grad()
-    def calc_conf_mat(pred, target, ignore_index):
-        num_classes = pred.shape[1]
-        pred = pred.argmax(dim = 1)
-        pred = pred.reshape(-1)
-        target = target.reshape(-1)
+    def calc_conf_mat(pred, target):
+        """
+        pred: N, C, H, W
+        target: N, H, W
+        """
+        num_classes = pred.shape[1] # N, C, H, W
+        pred = pred.argmax(dim = 1).reshape(-1)
+        mask = (target == 255)
+        target_valid = target.clone()
+        target_valid[mask] = 0
+        target_valid = target_valid.reshape(-1)
 
-        if ignore_index is not None:
-            mask = (target != ignore_index)
-            pred = pred[mask]
-            target = target[mask]
-        
-        idx = target*num_classes + pred
+        idx = target_valid*num_classes + pred
         count = torch.bincount(idx, minlength=num_classes*num_classes)
         return count.reshape(num_classes, num_classes)
     
@@ -147,7 +145,9 @@ class Trainer():
         tp = conf_mat.diag()
         fp = conf_mat.sum(0) - tp
         fn = conf_mat.sum(1) - tp
-
-        iou = tp / (tp + fp + fn)
-        miou = torch.nanmean(iou).item()
+        denom = tp + fp + fn
+        iou = torch.zeros_like(tp, dtype = torch.float32)
+        valid = denom > 0
+        iou = tp[valid] / denom[valid]
+        miou = iou.mean().item() if valid.any() else 0.0
         return miou, iou.cpu().numpy()

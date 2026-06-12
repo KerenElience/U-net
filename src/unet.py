@@ -8,14 +8,13 @@ class ConvBlock(nn.Module):
         self.layer = nn.Sequential(
             ## 对称填充, 能提取更多有效特征
             nn.Conv2d(input_channel, out_channel, 3, 1, 1, padding_mode="reflect", bias = False),
-            ## BatchNorm也是进行了偏置计算，所以上方可以关闭
+            ## BatchNorm也是进行了偏置计算，所以conv可以关闭
             nn.BatchNorm2d(out_channel),
-            # nn.Dropout2d(0.3),
-            nn.LeakyReLU(),
+            nn.ReLU(),
             nn.Conv2d(out_channel, out_channel, 3, 1, 1, padding_mode="reflect", bias = False),
             nn.BatchNorm2d(out_channel),
-            nn.Dropout2d(0.3),
-            nn.LeakyReLU(),
+            nn.ReLU(),
+            nn.Dropout2d(0.3)
         )
     
     def forward(self, x):
@@ -28,7 +27,7 @@ class DownSample(nn.Module):
         self.layer = nn.Sequential(
             nn.Conv2d(channel, channel, 3, 2, 1, padding_mode="reflect", bias = False),
             nn.BatchNorm2d(channel),
-            nn.LeakyReLU()
+            nn.ReLU()
         )
 
     def forward(self, x):
@@ -41,16 +40,21 @@ class UpSample(nn.Module):
         super().__init__()
         assert channel %2==0, "Upsample channel must be integert divid by 2."
         if nearest:
-            self.layer = nn.Sequential(
-                nn.Upsample(scale_factor=2),
-                nn.Conv2d(channel, channel//2, 1, 1),
-                )
+            self.up = nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True)
+            self.conv = nn.Conv2d(channel, channel//2, 1, 1)
         else:
-            self.layer = nn.ConvTranspose2d(channel, channel//2, 2, 2)
+            self.up = nn.Identity()
+            self.conv = nn.ConvTranspose2d(channel, channel//2, 2, 2)
 
     def forward(self, x, feature_map):
-        out = self.layer(x)
-        return torch.cat((feature_map, out), dim = 1)
+        x = self.up(x)
+        diffY = feature_map.size()[2] - x.size()[2] 
+        diffX = feature_map.size()[3] - x.size()[3]
+
+        x = F.pad(x, [diffX // 2, diffX - diffX // 2,
+                      diffY // 2, diffY - diffY // 2])
+        x = self.conv(x)
+        return torch.cat((feature_map, x), dim = 1)
 
 class UnetEncoder(nn.Module):
     def __init__(self, input_channel, out_channel):
