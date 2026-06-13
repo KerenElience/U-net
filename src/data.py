@@ -20,7 +20,9 @@ MAX_HEIGHT, MAX_WIDTH = 256, 256
 train_trans = A.Compose([
     A.RandomResizedCrop((MAX_HEIGHT, MAX_WIDTH)),
     # A.Resize(MAX_HEIGHT, MAX_WIDTH),
+    A.CoarseDropout(),
     A.ColorJitter(),
+    A.ElasticTransform(),
     A.HorizontalFlip(p = 0.5),
     A.GaussNoise(p = 0.2),
     A.ToTensorV2()

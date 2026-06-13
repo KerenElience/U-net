@@ -74,8 +74,8 @@ class UnetDecoder(nn.Module):
         self.conv = ConvBlock(input_channel, out_channel)
         
     def forward(self, x, feature_map):
-        up_ = self.upsample(x, feature_map)
-        out = self.conv(up_)
+        out = self.upsample(x, feature_map)
+        out = self.conv(out)
         return out
 
 class UNet(nn.Module):
@@ -94,6 +94,13 @@ class UNet(nn.Module):
         self.d4 = UnetDecoder(128, 64)
 
         self.outconv = nn.Conv2d(64, out_channel, 1, 1)
+        
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
     
     def forward(self, x):
         f1, out1 = self.e1(x)
