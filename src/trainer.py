@@ -89,7 +89,7 @@ class Trainer():
             tra_loss = self.train()
             val_loss, miou, class_iou = self.eval()
 
-            print(f"Class_iou: {class_iou}")
+            print(f"Class_iou: {class_iou.tolist()}")
 
             print(f"Train loss: {tra_loss}, Valid loss: {val_loss}, mIoU: {miou}") 
             self.state["tra_loss"].append(tra_loss)
@@ -97,7 +97,7 @@ class Trainer():
             self.state["miou"].append(miou)
             self.state["class_iou"].append(class_iou)
 
-            if (epoch+1) % 10 == 0:
+            if (epoch+1) % 20 == 0:
                 print(self.optimizer.param_groups[0]["lr"])
                 self.save(f"./run/epoch_{epoch+1}_model_loss_{val_loss:.4f}.pth")
 
@@ -108,18 +108,19 @@ class Trainer():
                     self.lr_scheduler.step()
 
             if val_loss < self.best_loss - self.tolerance:
-            # if miou > self.best_miou + self.tolerance:
                 n_count = 0
                 self.best_loss = val_loss
-                # self.best_miou = miou
                 self.save(f"./run/best_model.pth")
             else:
                 n_count += 1
             
-            if n_count == self.early_stop:
+            if miou > self.best_miou:
+                self.best_miou = miou
+
+            if n_count == self.early_stop and self.early_stop is not None:
                 print(f"Epoch {epoch} early stop.")
                 break
-        # print(f"Training finished. Best mIoU = {self.best_miou:.4f}")
+        print(f"Training finished. Best mIoU = {self.best_miou:.4f},  Best loss: {self.best_loss}")
         return None
     
     @staticmethod

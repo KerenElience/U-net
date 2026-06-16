@@ -12,14 +12,16 @@
 """
 
 import os
+import numpy as np
 import albumentations as A
 from torch.utils.data import Dataset
 from utils.utils import read_image
 
 MAX_HEIGHT, MAX_WIDTH = 256, 256
 train_trans = A.Compose([
-    A.RandomResizedCrop((MAX_HEIGHT, MAX_WIDTH)),
+    A.RandomResizedCrop((MAX_HEIGHT, MAX_WIDTH), scale=(0.2, 1.0)),
     # A.Resize(MAX_HEIGHT, MAX_WIDTH),
+    A.RandomRotate90(p = 0.5),
     A.CoarseDropout(),
     A.ColorJitter(),
     A.ElasticTransform(),
@@ -40,7 +42,7 @@ class UnetDataset(Dataset):
         self.namepath = os.path.join(path, "Segmentation", f"{datatype}.txt")
         self.name = self.inital()
         self.transformer = train_trans if datatype == "train" else val_trans
-    
+        
     def __len__(self):
         return len(self.name)
 

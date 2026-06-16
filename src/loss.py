@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class DiceLoss(nn.Module):      
     def __init__(self, num_classes, smooth = 1e-5):
         super().__init__()
@@ -22,9 +23,9 @@ class DiceLoss(nn.Module):
         return 1 - dice_loss.mean()
 
 class CEDiceLoss(nn.Module):
-    def __init__(self, num_classes, ce_weight = 0.5):
+    def __init__(self, num_classes, weight, ce_weight = 0.5):
         super().__init__()
-        self.ce_loss = nn.CrossEntropyLoss(ignore_index=255)
+        self.ce_loss = nn.CrossEntropyLoss(weight = weight,ignore_index=255)
         self.dice_loss = DiceLoss(num_classes)
         self.ce_weight = ce_weight
         self.dice_weight = 1 - ce_weight
