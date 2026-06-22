@@ -1,5 +1,4 @@
 import argparse
-from typing import Literal
 
 def train_args():
     parser = argparse.ArgumentParser()
