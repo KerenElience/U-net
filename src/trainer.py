@@ -51,8 +51,16 @@ class Trainer():
                 self.optimizer.step()
         return loss, pred
     
-    def save(self, savepath):
-        torch.save(self.model.state_dict(), savepath)
+    def save(self, epoch, savepath):
+        torch.save({"epoch": epoch,
+                    "arch": self.model.name if self.model.name is not None else "",
+                    "state_dict":self.model.state_dict(),
+                    "best_loss": self.best_loss,
+                    "optimizer": self.optimizer.state_dict(),
+                    "lr_scheduler": self.lr_scheduler.state_dict()
+                    }, 
+                    savepath
+                   )
 
     def train(self):
         self.model.train()
@@ -99,7 +107,7 @@ class Trainer():
 
             if (epoch+1) % 20 == 0:
                 print(self.optimizer.param_groups[0]["lr"])
-                self.save(f"./run/epoch_{epoch+1}_model_loss_{val_loss:.4f}.pth")
+                self.save(epoch, f"./run/epoch_{epoch+1}_model_loss_{val_loss:.4f}.pth")
 
             if self.lr_scheduler is not None:
                 if hasattr(self.lr_scheduler, "_reduce_lr"):
@@ -110,7 +118,7 @@ class Trainer():
             if val_loss < self.best_loss - self.tolerance:
                 n_count = 0
                 self.best_loss = val_loss
-                self.save(f"./run/best_model.pth")
+                self.save(epoch, f"./run/best_model.pth")
             else:
                 n_count += 1
             

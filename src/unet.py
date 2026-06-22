@@ -14,7 +14,7 @@ class ConvBlock(nn.Module):
             nn.Conv2d(out_channel, out_channel, 3, 1, 1, padding_mode="reflect", bias = False),
             nn.BatchNorm2d(out_channel),
             nn.ReLU(),
-            nn.Dropout2d(0.3)
+            nn.Dropout2d(0.2)
         )
     
     def forward(self, x):
@@ -81,6 +81,8 @@ class UnetDecoder(nn.Module):
 class UNet(nn.Module):
     def __init__(self, input_channel, out_channel):
         super().__init__()
+        self.name = "unet"
+        
         self.e1 = UnetEncoder(input_channel, 64)
         self.e2 = UnetEncoder(64, 128)
         self.e3 = UnetEncoder(128, 256)

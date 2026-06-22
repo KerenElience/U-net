@@ -27,11 +27,13 @@ train_trans = A.Compose([
     A.ElasticTransform(),
     A.HorizontalFlip(p = 0.5),
     A.GaussNoise(p = 0.2),
+    A.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     A.ToTensorV2()
 ])
 
 val_trans = A.Compose([
     A.Resize(MAX_HEIGHT, MAX_WIDTH),
+    A.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     A.ToTensorV2()
 ])
 
@@ -53,7 +55,7 @@ class UnetDataset(Dataset):
         image, segment_img = read_image(raw_path, segment_path)
         augmented = self.transformer(image = image, mask = segment_img)
         img, mask = augmented["image"], augmented["mask"]
-        img = img / 255
+        # img = img / 255
         mask = mask.long()
         return img, mask
     

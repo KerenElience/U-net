@@ -1,23 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-class ConvBlock(nn.Module):
-    def __init__(self, input_channel, out_channel):
-        super().__init__()
-        self.layer = nn.Sequential(
-            nn.Conv2d(input_channel, out_channel, 3, 1, 1, padding_mode="reflect", bias = False),
-            nn.BatchNorm2d(out_channel),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(out_channel, out_channel, 3, 1, 1, padding_mode="reflect", bias = False),
-            nn.BatchNorm2d(out_channel),
-            nn.ReLU(inplace=True),
-            nn.Dropout2d(0.2)
-        )
-        
-    def forward(self, x):
-        return self.layer(x)
-
+from .unet import ConvBlock
 
 class BasicBlock(nn.Module):
     def __init__(self, input_channel, out_channel, stride = 1, downsample = None):
@@ -94,7 +78,7 @@ class UpSample(nn.Module):
     def forward(self, x, feature_map):
         x = self.up(x)
         if x.shape[2:] != feature_map.shape[2:]:
-            x = F.interpolate(x, size = feature_map[2:], mode="bilinear", align_corners=True)
+            x = F.interpolate(x, size = feature_map.shape[2:], mode="bilinear", align_corners=True)
         return torch.cat([x, feature_map], dim = 1)
         
 class ResUnetDecoder(nn.Module):
@@ -111,6 +95,7 @@ class ResUnetDecoder(nn.Module):
 class ResUnet(nn.Module):
     def __init__(self, input_channel, out_channel, enc_channels = [64, 64, 128 ,256, 512]):
         super().__init__()
+        self.name = "resunet"
 
         self.encoder = ResUnetEncoder(input_channel, enc_channels=enc_channels)
         self.bottle_block = ConvBlock(enc_channels[-1], enc_channels[-1]*2) #1024
@@ -128,6 +113,9 @@ class ResUnet(nn.Module):
         )
         self.outconv = nn.Conv2d(64, out_channel, 1, 1)
 
+        self.initial_weight_bias()
+
+    def initial_weight_bias(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")

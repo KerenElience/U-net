@@ -25,7 +25,7 @@ def read_image(raw_path, segment_path):
 #     return img, mask
 
 def calc_rare_sample_weight(dataset, precent, rare_threshold = 0.01, ignore_index = [0],
-                            rare_weight = 3.0, normal_weight = 1.0,
+                            rare_weight = 2.0, normal_weight = 1.0,
                             n_jobs = -1):
     rare_indices = [n for n, v in enumerate(precent) if v < rare_threshold and n not in ignore_index]
 
@@ -43,3 +43,13 @@ def calc_rare_sample_weight(dataset, precent, rare_threshold = 0.01, ignore_inde
         delayed(check_fun)(i) for i in mask_idx
     )
     return sample_weight
+
+def calc_classes_weight_by_pixel(dataset):
+    cls = np.array()
+    for _, mask in dataset:
+        mask[mask == 255] = 0
+        cls.append(np.bincount(mask.flatten(), minlength=21))
+    
+    precent = cls.sum(axis =0 )/cls.sum()
+    weight = np.clip( np.median(precent) / (precent + 1e-6), 0.1, 10)
+    return precent, weight
