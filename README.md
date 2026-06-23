@@ -8,7 +8,7 @@
 ```shell
 git clone https://github.com/KerenElience/U-net.git
 cd U-net
-pip install -m requirement.txt  #环境配置
+pip install -r requirement.txt  #环境配置
 
 python train.py --model "resunet-tuned" 
 ```
