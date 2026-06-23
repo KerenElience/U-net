@@ -49,8 +49,8 @@ class ResAttUnetDecoder(nn.Module):
 
     def forward(self, x, encoder_x):
         x = self.upsample(x)
-        if x.shape[2:] != encoder_x.shape[2:]:
-            x = F.interpolate(x, size = encoder_x.shape[2:], mode="bilinear", align_corners=True)
+        # if x.shape[2:] != encoder_x.shape[2:]:
+        # x = F.interpolate(x, size = encoder_x.shape[2:], mode="bilinear", align_corners=True)
         encoder_x = self.att(x, encoder_x)
         x = torch.cat([x, encoder_x], dim = 1)
         return self.conv(x)

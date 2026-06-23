@@ -10,10 +10,10 @@ class ConvBlock(nn.Module):
             nn.Conv2d(input_channel, out_channel, 3, 1, 1, padding_mode="reflect", bias = False),
             ## BatchNorm也是进行了偏置计算，所以conv可以关闭
             nn.BatchNorm2d(out_channel),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
             nn.Conv2d(out_channel, out_channel, 3, 1, 1, padding_mode="reflect", bias = False),
             nn.BatchNorm2d(out_channel),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
             nn.Dropout2d(0.2)
         )
     

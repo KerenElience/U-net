@@ -24,5 +24,5 @@ def deploy_args():
     parser.add_argument("--weight", default="", type = str, metavar="PATH", help="path to checkpoint (default: None)")
     parser.add_argument("--name", default="default", type = str, help = "experiment name")
 
-    parser.add_argument("-o", dest="--output", default="./unet.onnx", type=str, metavar="PATH", help="onnx savepath")
+    parser.add_argument("-o", dest="output", default="./unet.onnx", type=str, metavar="PATH", help="onnx savepath")
     return parser.parse_args()

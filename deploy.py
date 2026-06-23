@@ -8,9 +8,9 @@ from src.resunet_tuned import AttUnetPretrained
 from src.data import MAX_HEIGHT, MAX_WIDTH
 from utils.argparse import deploy_args
 
-def get_model(backbone: nn.Module, weight: str):
+def get_model(model: nn.Module, weight: str):
     model_state = torch.load(weight)
-    model = backbone.load_state_dict(model_state["state_dict"])
+    model.load_state_dict(model_state["state_dict"])
     model = torch.jit.script(model)
     return model
 
@@ -20,14 +20,18 @@ def check_model(model_path):
 
 def export_onnx(model, savepath):
     model.eval()
-    dummp_input = torch.randn([32, 3, MAX_HEIGHT, MAX_WIDTH])
+    dummy_input = torch.randn([32, 3, MAX_HEIGHT, MAX_WIDTH])
     try:
-        torch.onnx.export(model, dummp_input, f = savepath,
+        torch.onnx.export(model, dummy_input, f = savepath,
+                        #   opset_version=12,
+                          input_names=["input"], output_names=["output"],
                           dynamic_axes={"input": {0: "batch_size"},
-                                        "output": {0: "batch_size"}})
+                                        "output": {0: "batch_size"}},
+                          verbose=False)
         check_model(savepath)
         return True
-    except:
+    except Exception as exp:
+        print(exp)
         return False
     
 def main(args):
@@ -45,7 +49,7 @@ def main(args):
     if isexported:
         print("Model output into onnx successfully.")
     else:
-        raise ValueError("Model outputo into onnx failed.")
+        raise ValueError("Model output into onnx failed.")
 
 if __name__ == "__main__":
     args = deploy_args()
