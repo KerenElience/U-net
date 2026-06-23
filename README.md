@@ -1,7 +1,23 @@
 # U-Net
 复现[U-Net论文](https://arxiv.org/html/1505.04597v1#S1)，强化记忆
-衍生品复合架构：unet+resnet
-进阶版本：unet++、rnn-unet
+衍生品复合架构：resnet-unet，resnet-attention_unet
+
+## 使用
+
+模型训练
+```shell
+git clone https://github.com/KerenElience/U-net.git
+cd U-net
+pip install -m requirement.txt  #环境配置
+
+python train.py --model "resunet-tuned" 
+```
+更多参数执行`python train.py -h`查看
+
+导出onnx
+```shell
+python deploy.py --model "resunet-tuned" --weight "/path/to/your/train/model_weight" -o "/path/to/save/onnx"
+```
 
 ## 具体细节
 - 使用SBD增强数据集，github以及kaggle上都能搜到，原增强数据集提供者的链接已经下架了
