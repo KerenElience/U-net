@@ -107,5 +107,3 @@ Train loss: 0.7720043665512811, Valid loss: 0.5157881217158359, mIoU: 0.53810518
 总结一下：从原版unet->resnet_unet->resnet_attention_unet->resnet(pretrained)-attention_unet，miou逐级提升，提升最明显的就是引入resnet和引入resnet预训练权重。
 
 神经网络当前个人理解为：根据先验知识，在已知的潜在空间中，通过一定的约束条件获得满足条件的解（集）。再从头来看，encoder由原版换成resnet，提升了获取先验知识的能力，attention将约束条件进一步收束，而预训练权重则是将可迁移的先验知识和潜空间搬运过来极大加快了模型的预测（推理）能力。
-
-### 关于部署
