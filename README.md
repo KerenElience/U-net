@@ -1,6 +1,6 @@
 # U-Net
-复现[U-Net论文](https://arxiv.org/html/1505.04597v1#S1)，强化记忆
-衍生品复合架构：resnet-unet，resnet-attention_unet
+Unet架构下针对VOC2012 (SBD)增强数据集 21类别的图像分割任务。[U-Net论文](https://arxiv.org/html/1505.04597v1#S1)
+衍生品复合架构：resnet34-unet, attention unet, resnet34-attention_unet
 
 ## 使用
 
@@ -120,6 +120,6 @@ Train loss: 0.7720043665512811, Valid loss: 0.5157881217158359, mIoU: 0.53810518
 5. attention最后的输出层经过的是sigmoid，sigmoid将注意力导向0、1两个方向，这仅仅给予了模型区分前景与背景的能力，直观上来说对于模型捕获细小物体的能力会有帮助。
 6. 由于使用了Resnet34直接作为encoder层，其中的输入原始通道3就已经是固定结果无法更改了，如果需要更改则应该在resnet34_encoder层前添加一个n_channel->3的卷积层。
 
-总结一下：从原版unet->resnet_unet->resnet_attention_unet->resnet(pretrained)-attention_unet，miou逐级提升，提升最明显的就是引入resnet和引入resnet预训练权重。
+总结一下：从原版unet->resnet_unet->resnet_attention_unet->resnet(pretrained)-attention_unet，miou逐级提升，提升最明显的就是引入resnet和引入resnet预训练权重。使用resnet101作为encoder结果应该会更高。
 
 神经网络当前个人理解为：根据先验知识，在已知的潜在空间中，通过一定的约束条件获得满足条件的解（集）。再从头来看，encoder由原版换成resnet，提升了获取先验知识的能力，attention将约束条件进一步收束，而预训练权重则是将可迁移的先验知识和潜空间搬运过来极大加快了模型的预测（推理）能力。
